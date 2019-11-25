@@ -9,22 +9,18 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.Provider;
 import java.security.Security;
 
 public class HashProvider {
     private static final String BOUNCY_CASTLE = "BC";
-    private static HashProvider hashProvider = null;
 
-    private HashProvider() {
-        Security.addProvider(new BouncyCastleProvider());
+    HashProvider(Provider serviceProvider) {
+        Security.addProvider(serviceProvider);
     }
 
-    public static HashProvider getInstance() {
-        if (HashProvider.hashProvider == null) {
-            HashProvider.hashProvider = new HashProvider();
-        }
-
-        return HashProvider.hashProvider;
+    HashProvider() {
+        this(new BouncyCastleProvider());
     }
 
     public String computeHash(Path file, String algorithm)
