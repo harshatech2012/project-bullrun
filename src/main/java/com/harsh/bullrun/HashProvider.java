@@ -11,12 +11,23 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.Provider;
 import java.security.Security;
+import java.util.HashSet;
+import java.util.Set;
 
 public class HashProvider {
     private static final String BOUNCY_CASTLE = "BC";
+    private Set<String> supportedDigests = new HashSet<>();
 
     HashProvider(Provider serviceProvider) {
         Security.addProvider(serviceProvider);
+
+        this.supportedDigests = new HashSet<>();
+        Set<Provider.Service> services = serviceProvider.getServices();
+        for (Provider.Service srv : services) {
+            if (srv.getType().equals("MessageDigest")) {
+                this.supportedDigests.add(srv.getAlgorithm().toUpperCase());
+            }
+        }
     }
 
     HashProvider() {
@@ -36,5 +47,9 @@ public class HashProvider {
         }
 
         return hexCode;
+    }
+
+    boolean supports(String algorithm) {
+        return this.supportedDigests.contains(algorithm.toUpperCase());
     }
 }
