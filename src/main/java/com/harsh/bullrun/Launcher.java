@@ -70,6 +70,5 @@ public class Launcher {
             // todo: replace with more user-friendly message
             except.printStackTrace();
         }
-
     }
 }
