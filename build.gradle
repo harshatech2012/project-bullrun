@@ -1,0 +1,36 @@
+pluginManager.apply "org.gradle.java"
+
+group = 'com.harsh'
+version = "1.0.0"
+
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.checkerframework:checker-qual:3.0.0"
+    implementation "com.google.guava:guava:28.1-jre"
+
+    // User Interface Libraries
+    implementation "commons-cli:commons-cli:1.4"
+
+    // Crypto Libraries
+    implementation "commons-codec:commons-codec:1.13"
+    implementation "org.bouncycastle:bcprov-jdk15on:1.64"
+
+}
+
+Closure runAppTask = {
+    classpath = sourceSets.main.runtimeClasspath
+    main = "com.harsh.bullrun.Launcher"
+
+    standardInput = System.in // expose terminal (standard keyboard input) to the program
+    args = [".\\init.gradle"]
+
+    group = "custom"
+    description = "Task for running the application."
+}
+task(type: JavaExec, "runApp", runAppTask)
