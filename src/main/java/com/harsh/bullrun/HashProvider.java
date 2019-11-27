@@ -34,16 +34,19 @@ public class HashProvider {
         this(new BouncyCastleProvider());
     }
 
-    public String computeHash(Path file, String algorithm)
+    // doc should highlight that the hexCode is always returned in lowercase
+    String computeHash(Path file, String algorithm)
             throws IOException, NoSuchAlgorithmException {
-        String hexCode = "";
+        String hexCode;
         try {
             MessageDigest messageDigest = MessageDigest.getInstance(algorithm, HashProvider.BOUNCY_CASTLE);
             DigestUtils digestUtils = new DigestUtils(messageDigest);
-            hexCode = digestUtils.digestAsHex(new File(file.toUri()));
+            hexCode = digestUtils.digestAsHex(new File(file.toUri())).toLowerCase();
         } catch (NoSuchProviderException except) {
             // Package BouncyCastle library with this application
             System.err.println("Library Missing: Bouncy Castle crypto-provider not found!");
+            throw new IllegalStateException(
+                    "Library Missing: Bouncy Castle crypto-provider not found!");
         }
 
         return hexCode;
