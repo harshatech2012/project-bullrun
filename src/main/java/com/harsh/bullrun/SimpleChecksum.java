@@ -6,7 +6,7 @@ public class SimpleChecksum implements Checksum {
     private String hashValue;
     private Boolean verified;
 
-    public SimpleChecksum(String fileName, String algorithm, String hashValue, Boolean verified) {
+    SimpleChecksum(String fileName, String algorithm, String hashValue, Boolean verified) {
         // TODO: check for null fileName, algorithm and hashValue. verified can have null values
         this.fileName = fileName;
         this.algorithm = algorithm;
@@ -14,7 +14,7 @@ public class SimpleChecksum implements Checksum {
         this.verified = verified;
     }
 
-    public SimpleChecksum(String fileName, String algorithm, String hashValue) {
+    SimpleChecksum(String fileName, String algorithm, String hashValue) {
         this(fileName, algorithm, hashValue, null);
     }
 
@@ -36,5 +36,22 @@ public class SimpleChecksum implements Checksum {
     @Override
     public Boolean isVerified() {
         return this.verified;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        boolean isEqual = false;
+        if (obj != null && this.getClass().getName().equalsIgnoreCase(obj.getClass().getName())) {
+            Checksum checksum = (Checksum) obj;
+            isEqual = this.getAlgorithm().equalsIgnoreCase(checksum.getAlgorithm());
+            isEqual = isEqual && this.getHashValue().equalsIgnoreCase(checksum.getHashValue());
+        }
+
+        return isEqual;
+    }
+
+    @Override
+    public int hashCode() {
+        return (this.getHashValue() + this.getAlgorithm()).hashCode();
     }
 }
