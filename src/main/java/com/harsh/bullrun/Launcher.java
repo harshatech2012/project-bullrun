@@ -1,20 +1,18 @@
 package com.harsh.bullrun;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.Properties;
 
 public class Launcher {
     public enum LauncherModules { CHECKSUM, GPG, GUI }
 
-    private void launch(LauncherModules module, String[] arguments) {
+    private void launch(LauncherModules module, String[] arguments, Properties appProperties) {
         // todo: handle IllegalArgumentExceptions here
         switch (module) {
             case CHECKSUM:
                 ConsoleInterface ui = new ChecksumInterface(
                         new CorInputProbe(new HashProvider()),
-                        new Properties()
+                        appProperties
                 );
                 ui.processRequest(arguments);
                 break;
@@ -37,6 +35,14 @@ public class Launcher {
         LauncherModules module = null;
         String[] arguments = null;
         try {
+            Properties appProperties = new Properties();
+            InputStream inputStream = Launcher.class.getClassLoader()
+                    .getResourceAsStream("application.properties");
+            if (inputStream == null) {
+                throw new FileNotFoundException("application.properties file not found");
+            }
+            appProperties.load(new InputStreamReader(inputStream));
+
             if (args.length == 0) {
                 System.out.println("Select a module to view help:");
                 try (BufferedReader reader =
@@ -65,8 +71,8 @@ public class Launcher {
                 }
             }
 
-            launcher.launch(module, arguments);
-        } catch (IllegalArgumentException except) {
+            launcher.launch(module, arguments, appProperties);
+        } catch (IllegalArgumentException | IOException except) {
             // todo: replace with more user-friendly message
             except.printStackTrace();
         }
