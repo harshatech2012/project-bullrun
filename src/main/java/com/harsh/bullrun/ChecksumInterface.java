@@ -29,6 +29,12 @@ public class ChecksumInterface implements ConsoleInterface {
                         .desc("file(s) whose hash is required").build()
         );
         this.hashInterface.addOption(
+                Option.builder().longOpt("one-to-one").hasArg(false)
+                        .desc("specify for one-to-one mapping of file(s) and algorithm(s). Requires the number of " +
+                                "files and algorithms be same. If not specified, a cartesian product of file(s) and " +
+                                "algorithm(s) gives number of hash values").build()
+        );
+        this.hashInterface.addOption(
                 Option.builder("c").longOpt("check").hasArgs()
                         .desc("hash values to compare against. Can be either a list of hash value(s) or " +
                                 "file(s) with hash value(s) in them").build()
@@ -40,7 +46,7 @@ public class ChecksumInterface implements ConsoleInterface {
         );
         this.hashInterface.addOption(
                 Option.builder().longOpt("strict-check").hasArg(false).
-                        desc("specify to perform strict verification. This requires that there be more hash values" +
+                        desc("specify to perform strict verification. Requires more hash values" +
                         " to check against than to compute").build()
         );
 
