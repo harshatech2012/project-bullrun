@@ -279,9 +279,10 @@ public class CorInputProbe implements InputProbingStrategy {
             hashLength = Math.max(hashLength, s.getHashValue().length());
         }
 
-        int lineLength = 4 + fileLength + 3 + algoLength +
+        final byte checkLength = 15; // length of the Check Status column
+        final int lineLength = 4 + fileLength + 3 + algoLength +
                 (request.hasParameter(ProbeParameters.CHECKS.name()) ?
-                (3 + 15) + (request.hasParameter(ProbeParameters.OMIT_HASH.name()) ? 0 : 3 + hashLength) :
+                (3 + checkLength) + (request.hasParameter(ProbeParameters.OMIT_HASH.name()) ? 0 : 3 + hashLength) :
                 (3 + hashLength)); // debug: check this logic
         String rowSeparator = new String(new char[lineLength]).replace("\0", "-");
         Checksum checksum;
@@ -295,7 +296,7 @@ public class CorInputProbe implements InputProbingStrategy {
                     checksum == null ? "File Name" : checksum.getFileName(),
                     checksum == null ? "Algorithm" : checksum.getAlgorithm().toUpperCase()));
             if (request.hasParameter(ProbeParameters.CHECKS.name())) {
-                System.out.print(String.format(" %15s |",
+                System.out.print(String.format(" %" + checkLength + "s |",
                         checksum == null ? "Check Status" : (
                                 checksum.isVerified() == null ? "Unchecked" :
                         (checksum.isVerified() ? "Verified" : "Corrupt"))
