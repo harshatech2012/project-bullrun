@@ -10,8 +10,11 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -255,7 +258,7 @@ public class CorInputProbe implements InputProbingStrategy {
                 }
             }
 
-            this.render(new ArrayList(checksums), request);
+            this.render(new ArrayList<>(checksums), request);
         } catch (IOException except) {
             // possible, despite '-f' request handler, due to TOCTTOU
             // NOTE: this is not a check. Checking is done only in '-f' request handler
@@ -270,16 +273,23 @@ public class CorInputProbe implements InputProbingStrategy {
     }
 
     private void render(List<Checksum> checksums, Request request) {
-        int fileLength = 0; // fixme: find a way to simplify this logic
-        int algoLength = 0;
-        int hashLength = 0;
+        class Headers {
+            private final static String FILE_NAME = "File Name";
+            private final static String ALGORITHM = "Algorithm";
+            private final static String HASH_VALUE = "Hash Value";
+            private final static String CHECK_STATUS = "Check Status";
+        }
+
+        int fileLength = Headers.FILE_NAME.length(); // fixme: find a way to simplify this logic
+        int algoLength = Headers.ALGORITHM.length();
+        int hashLength = Headers.HASH_VALUE.length();
         for (Checksum s : checksums) {
             fileLength = Math.max(fileLength, s.getFileName().length());
             algoLength = Math.max(algoLength, s.getAlgorithm().length());
             hashLength = Math.max(hashLength, s.getHashValue().length());
         }
 
-        final byte checkLength = 15; // length of the Check Status column
+        final int checkLength = Headers.CHECK_STATUS.length(); // length of the Check Status column
         final int lineLength = 4 + fileLength + 3 + algoLength +
                 (request.hasParameter(ProbeParameters.CHECKS.name()) ?
                 (3 + checkLength) + (request.hasParameter(ProbeParameters.OMIT_HASH.name()) ? 0 : 3 + hashLength) :
@@ -292,23 +302,23 @@ public class CorInputProbe implements InputProbingStrategy {
             }
             checksum = i == -1 ? null : checksums.get(i);
 
-            System.out.print(String.format("| %" + fileLength + " | %" + algoLength + " |",
-                    checksum == null ? "File Name" : checksum.getFileName(),
-                    checksum == null ? "Algorithm" : checksum.getAlgorithm().toUpperCase()));
+            System.out.print(String.format("| %" + fileLength + "s | %" + algoLength + "s |",
+                    checksum == null ? Headers.FILE_NAME : checksum.getFileName(),
+                    checksum == null ? Headers.ALGORITHM : checksum.getAlgorithm().toUpperCase()));
             if (request.hasParameter(ProbeParameters.CHECKS.name())) {
                 System.out.print(String.format(" %" + checkLength + "s |",
-                        checksum == null ? "Check Status" : (
+                        checksum == null ? Headers.CHECK_STATUS : (
                                 checksum.isVerified() == null ? "Unchecked" :
                         (checksum.isVerified() ? "Verified" : "Corrupt"))
                 ));
 
                 if (!request.hasParameter(ProbeParameters.OMIT_HASH.name())) {
                     System.out.print(String.format(" %" + hashLength + "s |",
-                            checksum == null ? "Hash Value" : checksum.getHashValue()));
+                            checksum == null ? Headers.HASH_VALUE : checksum.getHashValue()));
                 }
             } else {
                 System.out.print(String.format(" %" + hashLength + "s |",
-                        checksum == null ? "Hash Value" : checksum.getHashValue()));
+                        checksum == null ? Headers.HASH_VALUE : checksum.getHashValue()));
             }
 
             System.out.print("\n");
