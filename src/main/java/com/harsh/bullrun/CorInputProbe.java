@@ -10,11 +10,8 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -258,7 +255,7 @@ public class CorInputProbe implements InputProbingStrategy {
                 }
             }
 
-            this.render(checksums, request);
+            this.render(new ArrayList(checksums), request);
         } catch (IOException except) {
             // possible, despite '-f' request handler, due to TOCTTOU
             // NOTE: this is not a check. Checking is done only in '-f' request handler
@@ -272,10 +269,50 @@ public class CorInputProbe implements InputProbingStrategy {
         }
     }
 
-    private void render(Set<Checksum> checksums, Request request) {
-        // todo: implement this
-        final byte columnWidth = 80;
-        System.out.println();
+    private void render(List<Checksum> checksums, Request request) {
+        int fileLength = 0; // fixme: find a way to simplify this logic
+        int algoLength = 0;
+        int hashLength = 0;
+        for (Checksum s : checksums) {
+            fileLength = Math.max(fileLength, s.getFileName().length());
+            algoLength = Math.max(algoLength, s.getAlgorithm().length());
+            hashLength = Math.max(hashLength, s.getHashValue().length());
+        }
+
+        int lineLength = 4 + fileLength + 3 + algoLength +
+                (request.hasParameter(ProbeParameters.CHECKS.name()) ?
+                (3 + 15) + (request.hasParameter(ProbeParameters.OMIT_HASH.name()) ? 0 : 3 + hashLength) :
+                (3 + hashLength)); // debug: check this logic
+        String rowSeparator = new String(new char[lineLength]).replace("\0", "-");
+        Checksum checksum;
+        for (int i = -1; i < checksums.size(); i++) {
+            if (i <= 0) {
+                System.out.println(rowSeparator);
+            }
+            checksum = i == -1 ? null : checksums.get(i);
+
+            System.out.print(String.format("| %" + fileLength + " | %" + algoLength + " |",
+                    checksum == null ? "File Name" : checksum.getFileName(),
+                    checksum == null ? "Algorithm" : checksum.getAlgorithm().toUpperCase()));
+            if (request.hasParameter(ProbeParameters.CHECKS.name())) {
+                System.out.print(String.format(" %15s |",
+                        checksum == null ? "Check Status" : (
+                                checksum.isVerified() == null ? "Unchecked" :
+                        (checksum.isVerified() ? "Verified" : "Corrupt"))
+                ));
+
+                if (!request.hasParameter(ProbeParameters.OMIT_HASH.name())) {
+                    System.out.print(String.format(" %" + hashLength + "s |",
+                            checksum == null ? "Hash Value" : checksum.getHashValue()));
+                }
+            } else {
+                System.out.print(String.format(" %" + hashLength + "s |",
+                        checksum == null ? "Hash Value" : checksum.getHashValue()));
+            }
+
+            System.out.print("\n");
+        }
+        System.out.println(rowSeparator);
     }
 
     @Override
