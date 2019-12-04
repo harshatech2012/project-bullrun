@@ -8,11 +8,15 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Properties;
 
 public class ChecksumInterface implements ConsoleInterface {
+    private static final Logger logger = LoggerFactory.getLogger(ChecksumInterface.class);
+
     private InputProbingStrategy requestHandlingStrategy;
     private Properties applicationProperties;
     private Options hashInterface;
@@ -84,7 +88,8 @@ public class ChecksumInterface implements ConsoleInterface {
                 this.requestHandlingStrategy.handleRequest(request);
             }
         } catch (ParseException | IllegalArgumentException except) {
-            System.out.println(except.getMessage());
+            logger.error(except.getMessage(), except);
+            System.exit(-1); // exit immediately, not return
         }
     }
 
