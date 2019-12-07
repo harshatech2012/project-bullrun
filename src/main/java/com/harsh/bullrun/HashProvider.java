@@ -2,6 +2,8 @@ package com.harsh.bullrun;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,8 +17,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class HashProvider {
+    private static final Logger logger = LoggerFactory.getLogger(HashProvider.class);
     private static final String BOUNCY_CASTLE = "BC";
-    private Set<String> supportedDigests = new HashSet<>();
+    private Set<String> supportedDigests;
 
     HashProvider(Provider serviceProvider) {
         Security.addProvider(serviceProvider);
@@ -37,16 +40,15 @@ public class HashProvider {
     // doc should highlight that the hexCode is always returned in lowercase
     String computeHash(Path file, String algorithm)
             throws IOException, NoSuchAlgorithmException {
-        String hexCode;
+        String hexCode = null;
         try {
             MessageDigest messageDigest = MessageDigest.getInstance(algorithm, HashProvider.BOUNCY_CASTLE);
             DigestUtils digestUtils = new DigestUtils(messageDigest);
             hexCode = digestUtils.digestAsHex(new File(file.toUri())).toLowerCase();
         } catch (NoSuchProviderException except) {
             // Package BouncyCastle library with this application
-            System.err.println("Library Missing: Bouncy Castle crypto-provider not found!");
-            throw new IllegalStateException(
-                    "Library Missing: Bouncy Castle crypto-provider not found!");
+            logger.error("Library Missing: Bouncy Castle crypto-provider not found!");
+            System.exit(-1);
         }
 
         return hexCode;
