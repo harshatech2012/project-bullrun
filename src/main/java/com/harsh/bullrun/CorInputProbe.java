@@ -1,6 +1,8 @@
 package com.harsh.bullrun;
 
 import com.google.common.collect.Sets;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,12 +21,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class CorInputProbe implements InputProbingStrategy {
+    private static final Logger logger = LoggerFactory.getLogger(CorInputProbe.class);
     private static final String name = "COR Linear Strategy";
 
     private HashProvider hashProvider;
     private RequestHandler requestHandlerChain;
 
-    private enum ProbeParameters { FILE_PATHS, ALGORITHMS, HASHES, CHECKS, STRICT_CHECK, OMIT_HASH}
+    private enum ProbeParameters { FILE_PATHS, ALGORITHMS, HASHES, CHECKS, STRICT_CHECK, OMIT_HASH }
 
     {
         List<RequestHandler> handlers = new ArrayList<>();
@@ -214,11 +217,11 @@ public class CorInputProbe implements InputProbingStrategy {
         for (RequestHandler delegate : handlers) { // linking/chaining handlers
             if (lastHandler == null) {
                 this.requestHandlerChain = delegate;
-                lastHandler = delegate;
             } else {
                 lastHandler.setDelegate(delegate);
-                lastHandler = delegate;
             }
+
+            lastHandler = delegate;
         }
     }
 
@@ -263,12 +266,11 @@ public class CorInputProbe implements InputProbingStrategy {
             // possible, despite '-f' request handler, due to TOCTTOU
             // NOTE: this is not a check. Checking is done only in '-f' request handler
             throw new IllegalArgumentException(String.format(
-                    "File not found: %s", except.getMessage()));
+                    "File not found: %s. Possible TOCTTOU based error.", except.getMessage()));
         } catch (NoSuchAlgorithmException except) {
-            // fixme: replace System.err and printStackTrace() calls with logging
-            System.err.println("This shouldn't be reached. Else '-a' request handler is not working");
-            except.printStackTrace();
             // this shouldn't happen
+            logger.error("The request handler for '-a' not working.", except);
+            System.exit(-1);
         }
     }
 
@@ -293,7 +295,7 @@ public class CorInputProbe implements InputProbingStrategy {
         final int lineLength = 4 + fileLength + 3 + algoLength +
                 (request.hasParameter(ProbeParameters.CHECKS.name()) ?
                 (3 + checkLength) + (request.hasParameter(ProbeParameters.OMIT_HASH.name()) ? 0 : 3 + hashLength) :
-                (3 + hashLength)); // debug: check this logic
+                (3 + hashLength));
         String rowSeparator = new String(new char[lineLength]).replace("\0", "-");
         Checksum checksum;
         for (int i = -1; i < checksums.size(); i++) {
