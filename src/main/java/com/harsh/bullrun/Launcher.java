@@ -64,7 +64,7 @@ public class Launcher {
         }
     }
 
-    private void handleHelp() {
+    private void handleHelp(Properties appProperties) {
         System.out.println("Select a module to view help:");
         try (BufferedReader reader =
                      new BufferedReader(new InputStreamReader(System.in))) {
@@ -74,19 +74,30 @@ public class Launcher {
                 System.out.println(String.format(
                         "\t%d - %s", mod.ordinal() + 1, mod.name().toLowerCase()));
             }
-            System.out.print("Select a module to view help: ");
+            System.out.print("Enter the module's name to view help: ");
             String input = reader.readLine();
 
-//            module = LauncherModules.valueOf(input.toUpperCase());
-//            arguments = new String[] {"-h"};
+            this.launchModule(
+                    LauncherModules.valueOf(input.toUpperCase()),
+                    new String[]{"-h"},
+                    appProperties);
         } catch (IOException except) {
             logger.error("Unable to read console input. Stopping Execution.", except);
-            return; // only because it's main()
+        } catch (IllegalArgumentException except) {
+            logger.error(except.getMessage());
         }
     }
 
     private void handleVersion(Properties appProperties) {
-
+        System.out.println("Application Version: " + appProperties.getProperty("app.version"));
+        System.out.println("With the following modules:");
+        for (LauncherModules module : LauncherModules.values()) {
+            System.out.println(String.format(
+                    "\t- %s Version: %s",
+                    module.name(),
+                    appProperties.getProperty(module.getModulePrefix() + ".version")));
+        }
+        System.out.println("\n\n");
     }
 
     /**
@@ -97,13 +108,13 @@ public class Launcher {
      */
     private void launchApplication(String[] args, Properties appProperties) {
         if (args.length == 0) {
-            this.handleHelp();
+            this.handleHelp(appProperties);
         } else if (Pattern.matches("((-h)|(--help))", args[0].toLowerCase())){
             if (args.length != 1) {
                 System.out.println("Invalid Usage: -h or --help are standalone command-line " +
                         "options and don't take any arguments.");
             }
-            this.handleHelp();
+            this.handleHelp(appProperties);
         } else if (Pattern.matches("((-v)|(--version))", args[0].toLowerCase())) {
             if (args.length != 1) {
                 System.out.println("Invalid Usage: -v or --version are standalone command-line " +
@@ -132,7 +143,7 @@ public class Launcher {
 
                 // reached if module name is invalid
                 System.out.println(String.format("Invalid Module Name: %s", args[0]));
-                this.handleHelp();
+                this.handleHelp(appProperties);
             } catch (IllegalArgumentException except) {
                  logger.error(except.getMessage());
             }
