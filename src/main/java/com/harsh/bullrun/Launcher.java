@@ -19,7 +19,7 @@ public class Launcher {
     private static final Logger logger = LoggerFactory.getLogger(Launcher.class);
     private static final String PROPERTIES_FILE = "application.properties";
 
-    public enum LauncherModules {
+    enum LauncherModules {
         CHECKSUM ("app.module.checksum"),
         GPG ("app.module.gpg"),
         GUI ("app.module.gui");
@@ -35,18 +35,19 @@ public class Launcher {
         }
     }
 
-    private Launcher() {
-        // Default constructor
+    private Properties appProperties;
+
+    private Launcher(Properties appProperties) {
+        this.appProperties = appProperties;
     }
                             
     // todo: mention might throw IllegalArgumentExceptions
-    private void launchModule(LauncherModules module, String[] arguments,
-                              Properties appProperties) {
+    private void launchModule(LauncherModules module, String[] arguments) {
         switch (module) {
             case CHECKSUM:
                 ConsoleInterface ui = new ChecksumInterface(
                         new CorInputProbe(new HashProvider()),
-                        appProperties
+                        this.appProperties
                 );
                 ui.processRequest(arguments);
                 break;
@@ -64,7 +65,7 @@ public class Launcher {
         }
     }
 
-    private void handleHelp(Properties appProperties) {
+    private void handleHelp() {
         System.out.println("Select a module to view help:");
         try (BufferedReader reader =
                      new BufferedReader(new InputStreamReader(System.in))) {
@@ -77,10 +78,7 @@ public class Launcher {
             System.out.print("Enter the module's name to view help: ");
             String input = reader.readLine();
 
-            this.launchModule(
-                    LauncherModules.valueOf(input.toUpperCase()),
-                    new String[]{"-h"},
-                    appProperties);
+            this.launchModule(LauncherModules.valueOf(input.toUpperCase()), new String[]{"-h"});
         } catch (IOException except) {
             logger.error("Unable to read console input. Stopping Execution.", except);
         } catch (IllegalArgumentException except) {
@@ -88,14 +86,14 @@ public class Launcher {
         }
     }
 
-    private void handleVersion(Properties appProperties) {
-        System.out.println("Application Version: " + appProperties.getProperty("app.version"));
+    private void handleVersion() {
+        System.out.println("Application Version: " + this.appProperties.getProperty("app.version"));
         System.out.println("With the following modules:");
         for (LauncherModules module : LauncherModules.values()) {
             System.out.println(String.format(
                     "\t- %s Version: %s",
                     module.name(),
-                    appProperties.getProperty(module.getModulePrefix() + ".version")));
+                    this.appProperties.getProperty(module.getModulePrefix() + ".version")));
         }
         System.out.println("\n\n");
     }
@@ -104,23 +102,22 @@ public class Launcher {
      * Main entry point for launching application and its various modules.
      *
      * @param args command-line arguments
-     * @param appProperties properties for this application
      */
-    private void launchApplication(String[] args, Properties appProperties) {
+    private void launchApplication(String[] args) {
         if (args.length == 0) {
-            this.handleHelp(appProperties);
+            this.handleHelp();
         } else if (Pattern.matches("((-h)|(--help))", args[0].toLowerCase())){
             if (args.length != 1) {
                 System.out.println("Invalid Usage: -h or --help are standalone command-line " +
                         "options and don't take any arguments.");
             }
-            this.handleHelp(appProperties);
+            this.handleHelp();
         } else if (Pattern.matches("((-v)|(--version))", args[0].toLowerCase())) {
             if (args.length != 1) {
                 System.out.println("Invalid Usage: -v or --version are standalone command-line " +
                         "options and don't take any arguments.");
             }
-            this.handleVersion(appProperties);
+            this.handleVersion();
         } else {
             try {
                 String moduleArgument = args[0].toUpperCase();
@@ -136,14 +133,14 @@ public class Launcher {
                             System.arraycopy(args, 1, arguments, 0, args.length - 1);
                         }
 
-                        this.launchModule(module, arguments, appProperties);
+                        this.launchModule(module, arguments);
                         return; // execute this code once
                     }
                 }
 
                 // reached if module name is invalid
                 System.out.println(String.format("Invalid Module Name: %s", args[0]));
-                this.handleHelp(appProperties);
+                this.handleHelp();
             } catch (IllegalArgumentException except) {
                  logger.error(except.getMessage());
             }
@@ -151,7 +148,6 @@ public class Launcher {
     }
 
     public static void main(String[] args) {
-        Launcher launcher = new Launcher();
         try {
             Properties appProperties = new Properties();
             InputStream inputStream = Launcher.class.getClassLoader()
@@ -163,7 +159,8 @@ public class Launcher {
             }
             appProperties.load(new InputStreamReader(inputStream));
 
-            launcher.launchApplication(args, appProperties);
+            Launcher launcher = new Launcher(appProperties);
+            launcher.launchApplication(args);
         } catch (IOException except) {
             logger.error(except.getMessage());
             System.out.println(except.getMessage());
