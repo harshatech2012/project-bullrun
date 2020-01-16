@@ -20,16 +20,31 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * A chain of responsibility based implementation for handling command-line inputs pertaining to
+ * the checksum module.
+ *
+ * @author Harsha Vardhan
+ * @since v1.0.0
+ */
 public class CorInputProbe implements InputProbingStrategy {
     private static final Logger logger = LoggerFactory.getLogger(CorInputProbe.class);
+
+    /**
+     * Name of this strategy
+     */
     private static final String name = "COR Linear Strategy";
 
     private HashProvider hashProvider;
     private RequestHandler requestHandlerChain;
 
+    /**
+     * Additional parameters used by this strategy for maintaining processes' state, while
+     * handling a request.
+     */
     private enum ProbeParameters { FILE_PATHS, ALGORITHMS, HASHES, CHECKS, STRICT_CHECK, OMIT_HASH }
 
-    {
+    {   // chain of responsibility for request handling
         List<RequestHandler> handlers = new ArrayList<>();
         handlers.add(new RequestHandler() {
             @Override
@@ -225,6 +240,11 @@ public class CorInputProbe implements InputProbingStrategy {
         }
     }
 
+    /**
+     * Constructor for creating instances of this strategy.
+     *
+     * @param hashProvider a provider of hash algorithms and their implementations
+     */
     CorInputProbe(HashProvider hashProvider) {
         this.hashProvider = hashProvider;
     }
@@ -274,6 +294,15 @@ public class CorInputProbe implements InputProbingStrategy {
         }
     }
 
+    /**
+     * Displays the calculated checksums in a tabular format. Each of the checksum's corresponds
+     * to a unique hash and file combination.
+     *
+     * @param checksums list of calculated checksums, each corresponding to a unique file and
+     *                  hash combination
+     * @param request the request instance passed to the {@link this#handleRequest(Request)}
+     *               method of <code>this</code> class
+     */
     private void render(List<Checksum> checksums, Request request) {
         class Headers {
             private final static String FILE_NAME = "File Name";
