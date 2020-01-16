@@ -28,7 +28,7 @@ public class Launcher {
      *
      * <p>This enumeration is private to prevent access outside the Launcher class.</p>
      */
-    private enum LauncherModules {
+    enum LauncherModules {
         CHECKSUM ("app.module.checksum"),
         GPG ("app.module.gpg"),
         GUI ("app.module.gui");
@@ -45,7 +45,7 @@ public class Launcher {
     }
 
     /**
-     * Holds properties and constants used by the application.
+     * Properties and constants used by the application.
      */
     private Properties appProperties;
 
@@ -90,7 +90,7 @@ public class Launcher {
     }
 
     /**
-     * Handles "-h" or "--help" command-line option.
+     * Handles "-h" and "--help" command-line options.
      */
     private void handleHelp() {
         System.out.println("Select a module to view help:");
@@ -114,7 +114,7 @@ public class Launcher {
     }
 
     /**
-     * Handles "-v" or "--version" command-line option.
+     * Handles "-v" and "--version" command-line options.
      */
     private void handleVersion() {
         System.out.println("Application Version: " + this.appProperties.getProperty("app.version"));
