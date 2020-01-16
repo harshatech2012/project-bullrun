@@ -14,15 +14,43 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * <code>ChecksumInterface</code> defines the command-line interface for the "checksum"
+ * application module. The module provides the functionality for calculating digests or hashes of
+ * file(s) specified by the user.
+ *
+ * <p>This module only defines the user-interface options but not the strategy used for handling
+ * them. See {@link InputProbingStrategy} for more information.</p>
+ *
+ * @author Harsha Vardhan
+ * @since v1.0.0
+ */
 public class ChecksumInterface implements ConsoleInterface {
     private static final Logger logger = LoggerFactory.getLogger(ChecksumInterface.class);
 
+    /**
+     * Strategy for handling command-line options pertaining to this module.
+     */
     private InputProbingStrategy requestHandlingStrategy;
+
+    /**
+     * Properties/configuration information required by this module.
+     */
     private Properties applicationProperties;
+
+    /**
+     * Options for handling checksum/digest related command-line inputs. For outputs that are
+     * dependent on the input, like calculating hash which depends on the files specified.
+     */
     private Options hashInterface;
+
+    /**
+     * Options for handling module related command-line inputs. For inputs like
+     * "--version" and "--help", the output depends only on the module.
+     */
     private Options genericInterface;
 
-    {
+    {   // structure of the CLI
         this.hashInterface = new Options();
         this.hashInterface.addOption(
                 Option.builder("a").longOpt("algorithms").hasArgs().required()
@@ -34,19 +62,20 @@ public class ChecksumInterface implements ConsoleInterface {
         );
         this.hashInterface.addOption(
                 Option.builder().longOpt("one-to-one").hasArg(false)
-                        .desc("specify for one-to-one mapping of file(s) and algorithm(s). Requires the number of " +
-                                "files and algorithms be same. If not specified, a cartesian product of file(s) and " +
-                                "algorithm(s) gives number of hash values").build()
+                        .desc("specify for one-to-one mapping of file(s) and algorithm(s). " +
+                                "Requires the number of files and algorithms be same. If not " +
+                                "specified, a cartesian product of file(s) and algorithm(s) " +
+                                "gives number of hash values").build()
         );
         this.hashInterface.addOption(
                 Option.builder("c").longOpt("check").hasArgs()
-                        .desc("hash values to compare against. Can be either a list of hash value(s) or " +
-                                "file(s) with hash value(s) in them").build()
+                        .desc("hash values to compare against. Can be either a list of hash " +
+                                "value(s) or file(s) with hash value(s) in them").build()
         );
         this.hashInterface.addOption(
                 Option.builder().longOpt("omit-hash").hasArg(false)
-                        .desc("specify to omit hash values from output. Should only be used with 'check' flag.")
-                        .build()
+                        .desc("specify to omit hash values from output. Should only be used " +
+                                "with 'check' flag.").build()
         );
         this.hashInterface.addOption(
                 Option.builder().longOpt("strict-check").hasArg(false).
@@ -66,6 +95,13 @@ public class ChecksumInterface implements ConsoleInterface {
         );
     }
 
+    /**
+     * Constructor for creating instances of this user-interface.
+     *
+     * @param processingStrategy strategy for handling command-line options defined by this
+     *                           user-interface
+     * @param appProperties properties or configuration information required by this module
+     */
     ChecksumInterface (InputProbingStrategy processingStrategy, Properties appProperties) {
         this.requestHandlingStrategy = processingStrategy;
         this.applicationProperties = appProperties;
@@ -77,9 +113,11 @@ public class ChecksumInterface implements ConsoleInterface {
         try {
             CommandLine commandLine = parser.parse(this.genericInterface, args, true);
             if (commandLine.hasOption("h")) {
+                // hasArg(false) does not invalidate options, but only arguments
                 this.checkInvalidArguments(commandLine.getArgList());
                 this.handleHelp();
             } else if (commandLine.hasOption("v")) {
+                // hasArg(false) does not invalidate options, but only arguments
                 this.checkInvalidArguments(commandLine.getArgList());
                 this.handleVersion();
             } else {
@@ -93,17 +131,32 @@ public class ChecksumInterface implements ConsoleInterface {
         }
     }
 
+    /**
+     * Handles "-h" and "--help" command-line options.
+     */
     private void handleHelp() {
-        // TODO: figure out how to print help for -h and -v tags
         HelpFormatter helpFormatter = new HelpFormatter();
         helpFormatter.printHelp("java -jar validate.jar checksum", this.hashInterface, true);
     }
 
+    /**
+     * Handles "-v" and "--version" command-line options.
+     */
     private void handleVersion() {
-        System.out.println(String.format("Application Version: %s",
-                this.applicationProperties.getProperty("app.version")));
+        System.out.println(String.format(
+                "%s Module Version: %s",
+                Launcher.LauncherModules.CHECKSUM.name(),
+                this.applicationProperties.getProperty(
+                        Launcher.LauncherModules.CHECKSUM.getModulePrefix() + ".version")));
     }
 
+    /**
+     *  Checks for invalid command-line options passed with stand-alone command-line options like
+     *  --help, --version. Neither the method {@link Option.Builder#hasArg(boolean)} and nor does
+     *  an {@link OptionGroup} prevent other options from being chained to stand-alone a option.
+     *
+     * @param invalidArguments any remaining command-line arguments passed
+     */
     private void checkInvalidArguments(List<String> invalidArguments) {
         if (!invalidArguments.isEmpty()) {
             throw new IllegalArgumentException(
