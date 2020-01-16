@@ -39,6 +39,41 @@ public class CorInputProbe implements InputProbingStrategy {
     private RequestHandler requestHandlerChain;
 
     /**
+     * Abstract handler class for declaring handlers according to the chain of responsibility
+     * design pattern.
+     */
+    private static abstract class RequestHandler {
+        private RequestHandler delegate;
+
+        /**
+         * Handles the specified request, if possible. Optionally, passes on the request to it's
+         * delegate.
+         *
+         * @param request containing the input parameters
+         */
+        public abstract void handle(Request request);
+
+        /**
+         * Sets the delegate for this instance.
+         *
+         * @param delegate for passing-on/delegating the request to, if and when required.
+         */
+        public void setDelegate(RequestHandler delegate) {
+            this.delegate = delegate;
+        }
+
+        /**
+         * Returns the delegate assigned to this instance.
+         *
+         * @return delegate instance assigned to this class, if any. Other wise returns
+         * <code>null</code>.
+         */
+        public RequestHandler getDelegate() {
+            return this.delegate;
+        }
+    }
+
+    /**
      * Additional parameters used by this strategy for maintaining processes' state, while
      * handling a request.
      */
