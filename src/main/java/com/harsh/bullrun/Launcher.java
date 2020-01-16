@@ -3,8 +3,11 @@ package com.harsh.bullrun;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.util.Arrays;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Properties;
 import java.util.regex.Pattern;
 
@@ -19,7 +22,13 @@ public class Launcher {
     private static final Logger logger = LoggerFactory.getLogger(Launcher.class);
     private static final String PROPERTIES_FILE = "application.properties";
 
-    enum LauncherModules {
+    /**
+     * Enumeration of application modules. The enumeration parameter <code>modulePrefix</code> is
+     * to identify module related properties among other application properties.
+     *
+     * <p>This enumeration is private to prevent access outside the Launcher class.</p>
+     */
+    private enum LauncherModules {
         CHECKSUM ("app.module.checksum"),
         GPG ("app.module.gpg"),
         GUI ("app.module.gui");
@@ -35,13 +44,28 @@ public class Launcher {
         }
     }
 
+    /**
+     * Holds properties and constants used by the application.
+     */
     private Properties appProperties;
 
+    /**
+     * Private constructor to prevent instantiation outside the main method.
+     *
+     * @param appProperties application related properties and constants
+     */
     private Launcher(Properties appProperties) {
         this.appProperties = appProperties;
     }
-                            
-    // todo: mention might throw IllegalArgumentExceptions
+
+    /**
+     * Launches the application module corresponding to the command-line argument.
+     *
+     * @param module application module to launch
+     * @param arguments command-line arguments corresponding the application module. For example,
+     *                 for the command-line input: checksum -a SHA-256 -f example.exe, the
+     *                  arguments to this method would be "-a", "SHA-256", "-f", and "example.exe".
+     */
     private void launchModule(LauncherModules module, String[] arguments) {
         switch (module) {
             case CHECKSUM:
@@ -65,6 +89,9 @@ public class Launcher {
         }
     }
 
+    /**
+     * Handles "-h" or "--help" command-line option.
+     */
     private void handleHelp() {
         System.out.println("Select a module to view help:");
         try (BufferedReader reader =
@@ -86,6 +113,9 @@ public class Launcher {
         }
     }
 
+    /**
+     * Handles "-v" or "--version" command-line option.
+     */
     private void handleVersion() {
         System.out.println("Application Version: " + this.appProperties.getProperty("app.version"));
         System.out.println("With the following modules:");
@@ -99,9 +129,9 @@ public class Launcher {
     }
 
     /**
-     * Main entry point for launching application and its various modules.
+     * Launches the application.
      *
-     * @param args command-line arguments
+     * @param args command-line arguments as passed to the main method
      */
     private void launchApplication(String[] args) {
         if (args.length == 0) {
