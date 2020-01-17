@@ -11,7 +11,9 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -122,8 +124,18 @@ public class ChecksumInterface implements ConsoleInterface {
                 this.handleVersion();
             } else {
                 commandLine = parser.parse(this.hashInterface, args, false);
-                Request request = new ConsoleRequest(commandLine);
-                this.requestHandlingStrategy.handleRequest(request);
+                Option[] options = commandLine.getOptions();
+                Map<String, Object> optionValuePairs = new HashMap<>();
+                String option;
+                for (Option o : options) {
+                    option = (o.getOpt() == null) ? o.getLongOpt() : o.getOpt();
+                    optionValuePairs.put(option, commandLine.getOptionValues(option));
+                }
+
+                optionValuePairs.put(ConsoleRequest.CONSOLE_OPTIONS,
+                        optionValuePairs.keySet().toArray(new String[0]));
+                this.requestHandlingStrategy.handleRequest(
+                        new ConsoleRequest(optionValuePairs));
             }
         } catch (ParseException | IllegalArgumentException except) {
             logger.error(except.getMessage(), except);

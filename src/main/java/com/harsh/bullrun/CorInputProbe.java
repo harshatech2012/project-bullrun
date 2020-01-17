@@ -51,7 +51,7 @@ public class CorInputProbe implements InputProbingStrategy {
          *
          * @param request containing the input parameters
          */
-        public abstract void handle(Request request);
+        public abstract void handle(Request request); // TODO: replace with ConsoleRequest
 
         /**
          * Sets the delegate for this instance.
@@ -85,7 +85,7 @@ public class CorInputProbe implements InputProbingStrategy {
             @Override
             public void handle(Request request) {
                 final String optionShort = "a";
-                String[] algorithms = request.getOptionValues(optionShort);
+                String[] algorithms = (String[]) request.getParameter(optionShort);
                 for (String algo : algorithms) {
                     if (!hashProvider.supports(algo)) {
                         throw new IllegalArgumentException(
@@ -102,7 +102,7 @@ public class CorInputProbe implements InputProbingStrategy {
             @Override
             public void handle(Request request) {
                 final String optionShort = "f";
-                String[] filePaths = request.getOptionValues(optionShort);
+                String[] filePaths = (String[]) request.getParameter(optionShort);
                 try {
                     for (int i = 0; i < filePaths.length; i++) {
                         // check for file existence and replace with absolute path
@@ -135,7 +135,7 @@ public class CorInputProbe implements InputProbingStrategy {
                 String[] algorithms = (String[]) request.getParameter(ProbeParameters.ALGORITHMS.name());
                 String[][] hashes;
 
-                if (request.hasOption(optionLong)) {
+                if (request.hasParameter(optionLong)) {
                     if (filePaths.length != algorithms.length) {
                         throw new IllegalArgumentException(
                                 String.format("Cannot establish one-to-one mapping between file(s) and " +
@@ -170,13 +170,14 @@ public class CorInputProbe implements InputProbingStrategy {
 
         handlers.add(new RequestHandler() {
             // assume smallest digest size of 64 bits
-            private Pattern pattern = Pattern.compile("(\\p{XDigit}){16,}", Pattern.CASE_INSENSITIVE);
+            private Pattern pattern = Pattern.compile(
+                    "(\\p{XDigit}){16,}", Pattern.CASE_INSENSITIVE);
 
             @Override
             public void handle(Request request) {
                 final String optionShort = "c";
-                if (request.hasOption(optionShort)) {
-                    String[] checkers = request.getOptionValues(optionShort);
+                if (request.hasParameter(optionShort)) {
+                    String[] checkers = (String[]) request.getParameter(optionShort);
 
                     Set<String> checkAgainst = new HashSet<>();
                     BufferedReader reader = null;
@@ -224,8 +225,8 @@ public class CorInputProbe implements InputProbingStrategy {
             @Override
             public void handle(Request request) {
                 final String optionLong = "strict-check";
-                if (request.hasOption(optionLong)) {
-                    if (!request.hasOption("c")) { // fixme: do this step while parsing console input
+                if (request.hasParameter(optionLong)) {
+                    if (!request.hasParameter("c")) { // fixme: do this step while parsing console input
                         // cannot use 'strict-check' without 'c'
                         throw new IllegalArgumentException("Invalid Argument: Cannot use 'strict-check' without 'c'");
                     }
@@ -251,8 +252,8 @@ public class CorInputProbe implements InputProbingStrategy {
             @Override
             public void handle(Request request) {
                 final String optionLong = "omit-hash";
-                if (request.hasOption(optionLong)) {
-                    if (!request.hasOption("c")) { // fixme: do this step while parsing console input
+                if (request.hasParameter(optionLong)) {
+                    if (!request.hasParameter("c")) { // fixme: do this step while parsing console input
                         // cannot use 'strict-check' without 'c'
                         throw new IllegalArgumentException("Invalid Argument: Cannot use 'omit-hash' without 'c'");
                     }
