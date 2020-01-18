@@ -27,8 +27,8 @@ import java.util.regex.Pattern;
  * @author Harsha Vardhan
  * @since v1.0.0
  */
-public class CorInputProbe implements InputProbingStrategy {
-    private static final Logger logger = LoggerFactory.getLogger(CorInputProbe.class);
+public class CorChecksumInputProbe implements InputProbingStrategy {
+    private static final Logger logger = LoggerFactory.getLogger(CorChecksumInputProbe.class);
 
     /**
      * Name of this strategy
@@ -281,7 +281,7 @@ public class CorInputProbe implements InputProbingStrategy {
      *
      * @param hashProvider a provider of hash algorithms and their implementations
      */
-    CorInputProbe(HashProvider hashProvider) {
+    CorChecksumInputProbe(HashProvider hashProvider) {
         this.hashProvider = hashProvider;
     }
 
@@ -395,6 +395,6 @@ public class CorInputProbe implements InputProbingStrategy {
 
     @Override
     public String getName() {
-        return CorInputProbe.name;
+        return CorChecksumInputProbe.name;
     }
 }

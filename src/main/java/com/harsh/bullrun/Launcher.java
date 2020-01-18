@@ -70,7 +70,7 @@ public class Launcher {
         switch (module) {
             case CHECKSUM:
                 ConsoleInterface ui = new ChecksumInterface(
-                        new CorInputProbe(new HashProvider()),
+                        new CorChecksumInputProbe(new HashProvider()),
                         this.appProperties
                 );
                 ui.processRequest(arguments);
