@@ -51,7 +51,7 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
          *
          * @param request containing the input parameters
          */
-        public abstract void handle(Request request); // TODO: replace with ConsoleRequest
+        public abstract void handle(Request request);
 
         /**
          * Sets the delegate for this instance.
@@ -136,13 +136,6 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
                 String[][] hashes;
 
                 if (request.hasParameter(optionLong)) {
-                    if (filePaths.length != algorithms.length) {
-                        throw new IllegalArgumentException(
-                                String.format("Cannot establish one-to-one mapping between file(s) and " +
-                                        "algorithm(s). File [%d] and algorithm [%s] counts " +
-                                        "don't match.", filePaths.length, algorithms.length));
-                    }
-
                     hashes = new String[filePaths.length][2];
                     for (int i = 0; i < filePaths.length; i++) { // could have also used algorithms.length
                         hashes[i][0] = filePaths[i];
@@ -226,11 +219,6 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
             public void handle(Request request) {
                 final String optionLong = "strict-check";
                 if (request.hasParameter(optionLong)) {
-                    if (!request.hasParameter("c")) { // fixme: do this step while parsing console input
-                        // cannot use 'strict-check' without 'c'
-                        throw new IllegalArgumentException("Invalid Argument: Cannot use 'strict-check' without 'c'");
-                    }
-
                     String[] checks = (String[]) request.getParameter(ProbeParameters.CHECKS.name());
                     String[][] hashes = (String[][]) request.getParameter(ProbeParameters.HASHES.name());
                     if (checks.length < hashes.length) {
@@ -239,7 +227,6 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
                                 hashes.length, checks.length
                         ));
                     }
-
                     // fixme: replace this with bit masking parameter
                     request.addParameter(ProbeParameters.STRICT_CHECK.name(), "");
                 }
@@ -253,11 +240,6 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
             public void handle(Request request) {
                 final String optionLong = "omit-hash";
                 if (request.hasParameter(optionLong)) {
-                    if (!request.hasParameter("c")) { // fixme: do this step while parsing console input
-                        // cannot use 'strict-check' without 'c'
-                        throw new IllegalArgumentException("Invalid Argument: Cannot use 'omit-hash' without 'c'");
-                    }
-
                     // fixme: replace this with bit masking parameter
                     request.addParameter(ProbeParameters.OMIT_HASH.name(), "");
                 }

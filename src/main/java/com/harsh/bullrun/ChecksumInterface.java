@@ -124,6 +124,31 @@ public class ChecksumInterface implements ConsoleInterface {
                 this.handleVersion();
             } else {
                 commandLine = parser.parse(this.hashInterface, args, false);
+
+                // interface definition checks
+                int fileCount = commandLine.getOptionValues("files").length;
+                int algoCount = commandLine.getOptionValues("algorithms").length;
+                if (commandLine.hasOption("one-to-one") && (fileCount != algoCount)) {
+                    // 'one-to-one' requires algorithms and files have equal count
+                    throw new IllegalArgumentException(
+                            String.format("Cannot establish one-to-one mapping between file(s) and " +
+                                    "algorithm(s). File [%d] and algorithm [%s] counts " +
+                                    "don't match.", fileCount, algoCount));
+                }
+
+                if (commandLine.hasOption("strict-check") && (!commandLine.hasOption("check"))) {
+                    // use of 'strict-check' without 'check' doesn't make sense
+                    throw new IllegalArgumentException(
+                            "Invalid Argument: Cannot use 'strict-check' without 'check' option");
+                }
+
+                if (commandLine.hasOption("omit-hash") && (!commandLine.hasOption("check"))) {
+                    // use 'omit-hash' without 'check' doesn't make sense
+                    throw new IllegalArgumentException(
+                            "Invalid Argument: Cannot use 'omit-hash' without 'check' option");
+                }
+
+                // setting-up console request instance
                 Option[] options = commandLine.getOptions();
                 Map<String, Object> optionValuePairs = new HashMap<>();
                 String option;
@@ -137,9 +162,9 @@ public class ChecksumInterface implements ConsoleInterface {
                 this.requestHandlingStrategy.handleRequest(
                         new ConsoleRequest(optionValuePairs));
             }
-        } catch (ParseException | IllegalArgumentException except) {
+        } catch (ParseException except) {
             logger.error(except.getMessage(), except);
-            System.exit(-1); // exit immediately, not return
+            throw new IllegalArgumentException(except);
         }
     }
 
