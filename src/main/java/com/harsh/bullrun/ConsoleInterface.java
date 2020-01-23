@@ -17,5 +17,5 @@ public interface ConsoleInterface {
      *
      * @param args command-line arguments pertaining to this module
      */
-    public void processRequest(String[] args);
+    void processRequest(String[] args);
 }

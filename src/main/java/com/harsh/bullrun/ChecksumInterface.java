@@ -11,10 +11,12 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * <code>ChecksumInterface</code> defines the command-line interface for the "checksum"
@@ -27,7 +29,7 @@ import java.util.Properties;
  * @author Harsha Vardhan
  * @since v1.0.0
  */
-public class ChecksumInterface implements ConsoleInterface {
+class ChecksumInterface implements ConsoleInterface {
     private static final Logger logger = LoggerFactory.getLogger(ChecksumInterface.class);
 
     /**
@@ -110,22 +112,23 @@ public class ChecksumInterface implements ConsoleInterface {
     }
 
     @Override
+    @SuppressWarnings(value="unchecked")
     public void processRequest(String[] args) {
         CommandLineParser parser = new DefaultParser();
         try {
             CommandLine commandLine = parser.parse(this.genericInterface, args, true);
-            if (commandLine.hasOption("h")) {
+            if (commandLine.hasOption("help")) {
                 // hasArg(false) does not invalidate options, but only arguments
                 this.checkInvalidArguments(commandLine.getArgList());
                 this.handleHelp();
-            } else if (commandLine.hasOption("v")) {
+            } else if (commandLine.hasOption("version")) {
                 // hasArg(false) does not invalidate options, but only arguments
                 this.checkInvalidArguments(commandLine.getArgList());
                 this.handleVersion();
             } else {
                 commandLine = parser.parse(this.hashInterface, args, false);
 
-                // interface definition checks
+                // enforcing interface semantics
                 int fileCount = commandLine.getOptionValues("files").length;
                 int algoCount = commandLine.getOptionValues("algorithms").length;
                 if (commandLine.hasOption("one-to-one") && (fileCount != algoCount)) {
@@ -159,13 +162,82 @@ public class ChecksumInterface implements ConsoleInterface {
 
                 optionValuePairs.put(ConsoleRequest.CONSOLE_OPTIONS,
                         optionValuePairs.keySet().toArray(new String[0]));
-                this.requestHandlingStrategy.handleRequest(
-                        new ConsoleRequest(optionValuePairs));
+                optionValuePairs.put(ConsoleRequest.SUPPRESS_RESERVED_EXCEPTION, false);
+                Request consoleRequest = new ConsoleRequest(optionValuePairs);
+                this.requestHandlingStrategy.handleRequest(consoleRequest);
+
+                // @SuppressWarnings(value="unchecked") to suppress class casting
+                this.render(new ArrayList<Checksum>(Set.class.cast(
+                        consoleRequest.getParameter(InputProbingStrategy.RESULT))),
+                        commandLine);
             }
         } catch (ParseException except) {
             logger.error(except.getMessage(), except);
             throw new IllegalArgumentException(except);
         }
+    }
+
+    /**
+     * Displays the calculated checksums in a tabular format. Each of the checksum's corresponds
+     * to a unique hash and file combination.
+     *
+     * @param checksums list of calculated checksums, each corresponding to a unique file and
+     *                  hash combination
+     * @param commandLine the commandLine instance containing the parsed user arguments
+     */
+    private void render(List<Checksum> checksums, CommandLine commandLine) {
+        class Headers {
+            private final static String FILE_NAME = "File Name";
+            private final static String ALGORITHM = "Algorithm";
+            private final static String HASH_VALUE = "Hash Value";
+            private final static String CHECK_STATUS = "Check Status";
+        }
+
+        int fileLength = Headers.FILE_NAME.length(); // fixme: find a way to simplify this logic
+        int algoLength = Headers.ALGORITHM.length();
+        int hashLength = Headers.HASH_VALUE.length();
+        for (Checksum s : checksums) {
+            fileLength = Math.max(fileLength, s.getFileName().length());
+            algoLength = Math.max(algoLength, s.getAlgorithm().length());
+            hashLength = Math.max(hashLength, s.getHashValue().length());
+        }
+
+        final int checkLength = Headers.CHECK_STATUS.length(); // length of the Check Status column
+        final int lineLength = 4 + fileLength + 3 + algoLength +
+                (commandLine.hasOption("checks") ?
+                        (3 + checkLength) + (
+                                commandLine.hasOption("omit-hash") ? 0 : (3 + hashLength)
+                        ) : (3 + hashLength));
+        String rowSeparator = new String(new char[lineLength]).replace("\0", "-");
+        Checksum checksum;
+        for (int i = -1; i < checksums.size(); i++) {
+            if (i <= 0) {
+                System.out.println(rowSeparator);
+            }
+            checksum = i == -1 ? null : checksums.get(i);
+
+            System.out.print(String.format("| %" + fileLength + "s | %" + algoLength + "s |",
+                    checksum == null ? Headers.FILE_NAME : checksum.getFileName(),
+                    checksum == null ? Headers.ALGORITHM : checksum.getAlgorithm().toUpperCase()));
+            if (commandLine.hasOption("checks")) {
+                System.out.print(String.format(" %" + checkLength + "s |",
+                        checksum == null ? Headers.CHECK_STATUS : (
+                                checksum.isVerified() == null ? "Unchecked" :
+                                        (checksum.isVerified() ? "Verified" : "Corrupt"))
+                ));
+
+                if (!commandLine.hasOption("omit-hash")) {
+                    System.out.print(String.format(" %" + hashLength + "s |",
+                            checksum == null ? Headers.HASH_VALUE : checksum.getHashValue()));
+                }
+            } else {
+                System.out.print(String.format(" %" + hashLength + "s |",
+                        checksum == null ? Headers.HASH_VALUE : checksum.getHashValue()));
+            }
+
+            System.out.print("\n");
+        }
+        System.out.println(rowSeparator);
     }
 
     /**

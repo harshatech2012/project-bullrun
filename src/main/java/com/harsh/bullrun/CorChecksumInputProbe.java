@@ -77,7 +77,9 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
      * Additional parameters used by this strategy for maintaining processes' state, while
      * handling a request.
      */
-    private enum ProbeParameters { FILE_PATHS, ALGORITHMS, HASHES, CHECKS, STRICT_CHECK, OMIT_HASH }
+    private enum ProbeParameters {
+        FILE_PATHS, ALGORITHMS, HASHES, CHECKS, STRICT_CHECK, OMIT_HASH
+    }
 
     {   // chain of responsibility for request handling
         List<RequestHandler> handlers = new ArrayList<>();
@@ -131,11 +133,23 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
             @Override
             public void handle(Request request) {
                 final String optionLong = "one-to-one";
-                String[] filePaths = (String[]) request.getParameter(ProbeParameters.FILE_PATHS.name());
-                String[] algorithms = (String[]) request.getParameter(ProbeParameters.ALGORITHMS.name());
+                String[] filePaths = (String[]) request.getParameter(
+                        ProbeParameters.FILE_PATHS.name());
+                String[] algorithms = (String[]) request.getParameter(
+                        ProbeParameters.ALGORITHMS.name());
                 String[][] hashes;
 
                 if (request.hasParameter(optionLong)) {
+                    if (filePaths.length != algorithms.length) {
+                        // 'one-to-one' requires algorithms and files have equal count
+                        throw new IllegalArgumentException(
+                                String.format("Cannot establish one-to-one mapping between file" +
+                                        "(s) and algorithm(s). File [%d] and algorithm [%s] " +
+                                        "counts don't match.",
+                                        filePaths.length,
+                                        algorithms.length));
+                    }
+
                     hashes = new String[filePaths.length][2];
                     for (int i = 0; i < filePaths.length; i++) { // could have also used algorithms.length
                         hashes[i][0] = filePaths[i];
@@ -188,7 +202,6 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
                                 while ((line = reader.readLine()) != null) {
                                     matcher = this.pattern.matcher(line);
                                     while (matcher.find()) {
-                                        // debug: check if this is properly parsing hashes
                                         checkAgainst.add(matcher.group().toLowerCase());
                                     }
                                 }
@@ -207,7 +220,8 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
                         }
                     }
 
-                    request.addParameter(ProbeParameters.CHECKS.name(), checkAgainst.toArray(new String[0]));
+                    request.addParameter(ProbeParameters.CHECKS.name(),
+                            checkAgainst.toArray(new String[0]));
                 }
 
                 this.getDelegate().handle(request);
@@ -219,8 +233,10 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
             public void handle(Request request) {
                 final String optionLong = "strict-check";
                 if (request.hasParameter(optionLong)) {
-                    String[] checks = (String[]) request.getParameter(ProbeParameters.CHECKS.name());
-                    String[][] hashes = (String[][]) request.getParameter(ProbeParameters.HASHES.name());
+                    String[] checks = (String[]) request.getParameter(
+                            ProbeParameters.CHECKS.name());
+                    String[][] hashes = (String[][]) request.getParameter(
+                            ProbeParameters.HASHES.name());
                     if (checks.length < hashes.length) {
                         throw new IllegalArgumentException(String.format(
                                 "Cannot check strictly. Hashes [%d] more than Checks [%d]",
@@ -289,17 +305,19 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
                 if ((checks != null) && (request.hasParameter(ProbeParameters.STRICT_CHECK.name()) ||
                         checks.contains(hashValue))) {
                     checksums.add(new SimpleChecksum(
-                            filePath.getFileName().toString(), hashParam[1].toUpperCase(), hashValue,
-                            checks.remove(hashValue))
-                    );
+                            filePath.getFileName().toString(),
+                            hashParam[1].toUpperCase(), hashValue,
+                            checks.remove(hashValue)
+                    ));
                 } else {
                     checksums.add(new SimpleChecksum(
-                            filePath.getFileName().toString(), hashParam[1].toUpperCase(), hashValue)
-                    );
+                            filePath.getFileName().toString(),
+                            hashParam[1].toUpperCase(), hashValue
+                    ));
                 }
             }
 
-            this.render(new ArrayList<>(checksums), request);
+            request.addParameter(this.RESULT, checksums);
         } catch (IOException except) {
             // possible, despite '-f' request handler, due to TOCTTOU
             // NOTE: this is not a check. Checking is done only in '-f' request handler
@@ -310,69 +328,6 @@ public class CorChecksumInputProbe implements InputProbingStrategy {
             logger.error("The request handler for '-a' not working.", except);
             System.exit(-1);
         }
-    }
-
-    /**
-     * Displays the calculated checksums in a tabular format. Each of the checksum's corresponds
-     * to a unique hash and file combination.
-     *
-     * @param checksums list of calculated checksums, each corresponding to a unique file and
-     *                  hash combination
-     * @param request the request instance passed to the {@link this#handleRequest(Request)}
-     *               method of <code>this</code> class
-     */
-    private void render(List<Checksum> checksums, Request request) {
-        class Headers {
-            private final static String FILE_NAME = "File Name";
-            private final static String ALGORITHM = "Algorithm";
-            private final static String HASH_VALUE = "Hash Value";
-            private final static String CHECK_STATUS = "Check Status";
-        }
-
-        int fileLength = Headers.FILE_NAME.length(); // fixme: find a way to simplify this logic
-        int algoLength = Headers.ALGORITHM.length();
-        int hashLength = Headers.HASH_VALUE.length();
-        for (Checksum s : checksums) {
-            fileLength = Math.max(fileLength, s.getFileName().length());
-            algoLength = Math.max(algoLength, s.getAlgorithm().length());
-            hashLength = Math.max(hashLength, s.getHashValue().length());
-        }
-
-        final int checkLength = Headers.CHECK_STATUS.length(); // length of the Check Status column
-        final int lineLength = 4 + fileLength + 3 + algoLength +
-                (request.hasParameter(ProbeParameters.CHECKS.name()) ?
-                (3 + checkLength) + (request.hasParameter(ProbeParameters.OMIT_HASH.name()) ? 0 : 3 + hashLength) :
-                (3 + hashLength));
-        String rowSeparator = new String(new char[lineLength]).replace("\0", "-");
-        Checksum checksum;
-        for (int i = -1; i < checksums.size(); i++) {
-            if (i <= 0) {
-                System.out.println(rowSeparator);
-            }
-            checksum = i == -1 ? null : checksums.get(i);
-
-            System.out.print(String.format("| %" + fileLength + "s | %" + algoLength + "s |",
-                    checksum == null ? Headers.FILE_NAME : checksum.getFileName(),
-                    checksum == null ? Headers.ALGORITHM : checksum.getAlgorithm().toUpperCase()));
-            if (request.hasParameter(ProbeParameters.CHECKS.name())) {
-                System.out.print(String.format(" %" + checkLength + "s |",
-                        checksum == null ? Headers.CHECK_STATUS : (
-                                checksum.isVerified() == null ? "Unchecked" :
-                        (checksum.isVerified() ? "Verified" : "Corrupt"))
-                ));
-
-                if (!request.hasParameter(ProbeParameters.OMIT_HASH.name())) {
-                    System.out.print(String.format(" %" + hashLength + "s |",
-                            checksum == null ? Headers.HASH_VALUE : checksum.getHashValue()));
-                }
-            } else {
-                System.out.print(String.format(" %" + hashLength + "s |",
-                        checksum == null ? Headers.HASH_VALUE : checksum.getHashValue()));
-            }
-
-            System.out.print("\n");
-        }
-        System.out.println(rowSeparator);
     }
 
     @Override
