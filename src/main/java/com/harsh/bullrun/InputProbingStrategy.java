@@ -7,6 +7,11 @@ package com.harsh.bullrun;
  * @since v1.0.0
  */
 public interface InputProbingStrategy {
+    /**
+     * Key for passing the result of executing this strategy. It's recommended that strategy
+     * implementations return their result adding it as a parameter to the request object.
+     */
+    public static final String RESULT = "result";
 
     /**
      * Handles the user request encapsulated in a {@link Request} instance, containing the user
