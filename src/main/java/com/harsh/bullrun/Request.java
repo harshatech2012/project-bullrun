@@ -1,8 +1,7 @@
 package com.harsh.bullrun;
 
-import com.google.common.collect.ImmutableSet;
-
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,11 +17,22 @@ import java.util.Set;
  *     Class.forName(<request-instance>.getType()).cast(<request-instance>);
  * </code>
  *
+ * <p>This class supports special class of parameters called the "reserved-parameters".
+ * A set of parameters that hold special immutable-and-protected status amongst other parameters
+ * in this request instance.For these parameters, once their value is set, it can neither be
+ * deleted or edited. Hence, these parameters should be set during instance creation (passed as a
+ * constructor argument). It is advised that all subclasses extending this class should throw
+ * override {@link this#setReservedParameters(Set, boolean)} and throw an
+ * {@link UnsupportedOperationException}. This is to ensure that reserved parameters are only set
+ * through the constructor during instance creation.</p>
+ *
  * @author Harsha Vardhan
  * @since v1.0.0
  */
 public abstract class Request {
-    private Map<String, Object> parameters = new HashMap<>();
+    private Map<String, Object> parameterValueMap = new HashMap<>();
+    private Set<String> reservedParameters = new HashSet<>();
+    private boolean suppressReservedException;
 
     /**
      * Returns the fully qualified classname of this request instance.
@@ -37,6 +47,46 @@ public abstract class Request {
     public abstract String getRequestType();
 
     /**
+     * Sets the reserved parameters names. These parameters should be set during instance
+     * creation (passed as a constructor argument). It is advised that all subclasses extending
+     * this class should throw override this method and throw an
+     * {@link UnsupportedOperationException}. This is to ensure that reserved parameters are only set
+     * through the constructor during instance creation.
+     *
+     * @param reservedParameterNames set of reserved parameter names
+     * @param suppressReservedException if true this instance won't throw an
+     *                         UnsupportedOperationException on trying to add/delete an existing
+     *                         reserved parameter
+     */
+    void setReservedParameters(Set<String> reservedParameterNames, boolean suppressReservedException) {
+        // reservedParameterNames is a reference type, can be changed after assignment
+        this.reservedParameters = new HashSet<>(reservedParameterNames);
+        this.suppressReservedException = suppressReservedException;
+    }
+
+    /**
+     * Returns a non-backing set of reserved parameters.
+     *
+     * <p>Here non-backing means that any changes to the returned list won't effect the this
+     * instance, in any way.</p>
+     *
+     * @return non-backing set of reserved parameters.
+     */
+    public Set<String> getReservedParameters() {
+        return new HashSet<>(this.reservedParameters);
+    }
+
+    /**
+     * Checks whether the given parameter name is reserved.
+     *
+     * @param name of the parameter to check for
+     * @return true if the name is a reserved parameter, false otherwise
+     */
+    public boolean isReservedParameter(String name) {
+        return this.reservedParameters.contains(name);
+    }
+
+    /**
      * Adds the following parameter name and its corresponding values. If the parameter name
      * already exists then the existing value is replaced with the new value. Hence, to prevent
      * loss of existing data, it's recommended to check if the parameter name already exists
@@ -44,21 +94,64 @@ public abstract class Request {
      *
      * @param name of the parameter to add
      * @param value corresponding to the parameter
+     * @return true if the parameter has been added, false otherwise
+     * @throws UnsupportedOperationException if the parameter name matches a reserved parameter
+     * and its value has already been set. Use hasParameter(String) and isReservedParameter
+     * (String) to prevent this exception. This exception can be silenced by setting the
+     * quiteEnforcement parameter to true, see {@link this#setReservedParameters(Set, boolean)}
+     * for more information.
      */
-    public void addParameter(String name, Object value) {
-        this.parameters.put(name, value);
+    public boolean addParameter(String name, Object value) {
+        if (this.isReservedParameter(name) && this.hasParameter(name)) {
+            if (this.suppressReservedException) {
+                return false;
+            } else {
+                throw new UnsupportedOperationException(String.format(
+                        "Reserved Parameter %s: Cannot edit its value.", name));
+            }
+        }
+
+        this.parameterValueMap.put(name, value);
+        return true;
     }
 
     /**
-     * Deletes the parameter with the specified name and returns its value. If the
-     * parameter with the specified name doesn't exist then null is returned.
+     * Deletes the parameter with the specified name, and returns operation status. If the
+     * parameter exists and is successfully deleted then returns true, and false in the following
+     * cases:
+     * <ul>
+     *     <li>The parameter with the name doesn't exist</li>
+     *     <li>The parameter with the name exists but is one of the reserved parameters, in
+     *     which case it won't be deleted</li>
+     * </ul>
+     *
+     * <b>Caution:</b> the parameter names are identified using {@link String#equals(Object)}
+     * method.
      *
      * @param name of the parameter to be deleted
-     * @return value corresponding to the parameter just deleted or <code>null</code> if the
-     * parameter is not found.
+     * @return true if the parameter exists and has been removed, false otherwise
+     * @throws UnsupportedOperationException if the parameter exists and its name matches a
+     * reserved parameter. Use hasParameter(String) and isReservedParameter
+     * (String) to prevent this exception. This exception can be silenced by setting the
+     * quiteEnforcement parameter to true, see {@link this#setReservedParameters(Set, boolean)}
+     * for more information.
      */
-    public Object removeParameter(String name) {
-        return this.parameters.remove(name);
+    public boolean removeParameter(String name) {
+        if (this.hasParameter(name)) {
+            if (this.isReservedParameter(name)) {
+                if (this.suppressReservedException) {
+                    return false;
+                } else {
+                    throw new UnsupportedOperationException(String.format(
+                            "Reserved Parameter %s: Cannot delete it.", name));
+                }
+            } else {
+                this.parameterValueMap.remove(name);
+                return true;
+            }
+        } else {
+            return false;
+        }
     }
 
     /**
@@ -70,7 +163,7 @@ public abstract class Request {
      * {@link this#hasParameter(String)} to avoid NullPointerException with the caller.
      */
     public Object getParameter(String name) {
-        return this.parameters.get(name);
+        return this.parameterValueMap.get(name);
     }
 
     /**
@@ -80,7 +173,7 @@ public abstract class Request {
      * @return true if the parameter is present
      */
     public boolean hasParameter(String name) {
-        return this.parameters.containsKey(name);
+        return this.parameterValueMap.containsKey(name);
     }
 
     /**
@@ -90,6 +183,6 @@ public abstract class Request {
      * @return a non-backing copy of parameter names carried by this instance
      */
     public Set<String> listParameterNames() {
-        return ImmutableSet.copyOf(this.parameters.keySet());
+        return new HashSet<>(this.parameterValueMap.keySet());
     }
 }
