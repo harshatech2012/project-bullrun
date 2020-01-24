@@ -1,9 +1,14 @@
 package com.harsh.bullrun;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A basic implementation of the {@link Checksum} interface.
  */
 public class SimpleChecksum implements Checksum {
+    private static final Logger logger = LoggerFactory.getLogger(SimpleChecksum.class);
+
     private String fileName;
     private String algorithm;
     private String hashValue;
@@ -64,6 +69,14 @@ public class SimpleChecksum implements Checksum {
             Checksum checksum = (Checksum) obj;
             isEqual = this.getAlgorithm().equalsIgnoreCase(checksum.getAlgorithm());
             isEqual = isEqual && this.getHashValue().equalsIgnoreCase(checksum.getHashValue());
+
+            if (isEqual && !this.fileName.equalsIgnoreCase(checksum.getFileName())) {
+                logger.warn("Possible Hash Collision: \n\tBetween: {} and {}" +
+                                "\n\tUsing Algorithm: {}" +
+                                "\nInvestigation Required, contact developer immediately!",
+                        this.fileName, checksum.getFileName(), this.algorithm);
+                // TODO: add code to alert the user and developer (with users' permission, duh!)
+            }
         }
 
         return isEqual;
