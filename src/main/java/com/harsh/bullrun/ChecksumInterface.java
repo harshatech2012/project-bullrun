@@ -1,8 +1,8 @@
 package com.harsh.bullrun;
 
+import org.apache.commons.cli.CliParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
@@ -114,7 +114,7 @@ class ChecksumInterface implements ConsoleInterface {
     @Override
     @SuppressWarnings(value="unchecked")
     public void processRequest(String[] args) {
-        CommandLineParser parser = new DefaultParser();
+        CommandLineParser parser = new CliParser();
         try {
             CommandLine commandLine = parser.parse(this.genericInterface, args, true);
             if (commandLine.hasOption("help")) {
