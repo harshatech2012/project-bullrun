@@ -197,10 +197,10 @@ public class CliParser implements CommandLineParser {
             cmd.addArg(token);
         } else if ("--".equals(token)) {
             skipParsing = true;
-        } else if (currentOption != null && currentOption.acceptsArg() && isArgument(token)) {
-            currentOption.addValueForProcessing(Util.stripLeadingAndTrailingQuotes(token));
         } else if (token.startsWith("--")) {
             handleLongOption(token);
+        } else if (currentOption != null && currentOption.acceptsArg() && isArgument(token)) {
+            currentOption.addValueForProcessing(Util.stripLeadingAndTrailingQuotes(token));
         } else if (token.startsWith("-") && !"-".equals(token)) {
             handleShortAndLongOption(token);
         } else {
